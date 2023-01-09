@@ -1,6 +1,7 @@
 import argparse
 import sys
 import pickle
+import train
 
 
 def createParser ():
@@ -10,8 +11,16 @@ def createParser ():
     parser.add_argument('--model')
     return parser
 
-def compare_scripts(model, script1, script2):
-    return model.predict(script1, script2)
+def extract_features(script1, script2):
+    X = None
+    with open("vectorizer.pkl", "rb") as f, \
+            open(script1, 'r') as f1, \
+            open(script2, 'r') as f2:
+        vectorizer = pickle.load(f)
+        X1 = vectorizer.transform([train.text_preprocessing(f1.read())]).toarray()
+        X2 = vectorizer.transform([train.text_preprocessing(f2.read())]).toarray()
+        X = X1 + X2
+    return X
 
 if __name__ == '__main__':
     parser = createParser()
@@ -22,5 +31,5 @@ if __name__ == '__main__':
         model = pickle.load(file_model)
         for line in input_file:
             script1, script2 = line.split()
-            score = compare_scripts(model, script1, script2)
-            scores_file.write(str(score) + '\n')
+            score = model.predict_proba(extract_features(script1, script2))[0]
+            scores_file.write(str(score[0]) + '\n')
